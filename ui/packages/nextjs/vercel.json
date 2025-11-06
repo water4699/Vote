@@ -1,4 +1,4 @@
 {
-  "buildCommand": "pnpm build",
-  "installCommand": "pnpm install --no-frozen-lockfile --shamefully-hoist"
+  "buildCommand": "npm run build",
+  "installCommand": "npm install"
 }
