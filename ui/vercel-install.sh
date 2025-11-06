@@ -1,19 +1,20 @@
 #!/bin/bash
 set -e
 
-# Install root dependencies
-echo "Installing root dependencies..."
+echo "=== Step 1: Installing root dependencies ==="
 npm install
 
-# Build fhevm-sdk first
-echo "Building @fhevm-sdk..."
+echo "=== Step 2: Installing and building @fhevm-sdk ==="
 cd packages/fhevm-sdk
 npm install
 npm run build
 cd ../..
 
-# Install nextjs dependencies
-echo "Installing nextjs dependencies..."
+echo "=== Step 3: Installing nextjs dependencies ==="
 cd packages/nextjs
-npm install --legacy-peer-deps
+# Use npm install with file protocol
+npm install --legacy-peer-deps --no-package-lock
+cd ../..
+
+echo "=== Installation complete ==="
 

@@ -1,4 +1,4 @@
 {
   "buildCommand": "npm run build",
-  "installCommand": "bash ../../vercel-install.sh"
+  "installCommand": "cd ../.. && npm install && cd packages/fhevm-sdk && npm install && npm run build && cd ../nextjs && npm install --legacy-peer-deps"
 }
