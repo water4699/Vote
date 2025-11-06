@@ -624,19 +624,68 @@ export const useVotingWagmi = (parameters: {
   }, [hasContract, pollInfo, selectedPollId, getContract]);
 
   const allowAdminToDecrypt = useCallback(async (pollId: number, optionIndex: number) => {
-    if (!isAdmin) return setMessage("Only admin can allow decryption");
+    if (!isAdmin) {
+      setMessage("❌ Only admin can allow decryption");
+      return;
+    }
     if (isProcessing) return;
+    
+    // 检查参数
+    if (pollId === undefined || optionIndex === undefined) {
+      setMessage("❌ Invalid poll ID or option index");
+      return;
+    }
+    
+    // 检查选项是否在有效范围内
+    if (pollInfo && optionIndex >= pollInfo.optionCount) {
+      setMessage(`❌ Invalid option index. Valid range: 0-${pollInfo.optionCount - 1}`);
+      return;
+    }
     
     setIsProcessing(true);
     try {
       const write = getContract("write");
       if (!write) {
-        setMessage("Contract or signer not available");
+        setMessage("❌ Contract or signer not available");
         setIsProcessing(false);
         return;
       }
       
+      // 先检查选项是否有投票数据
+      try {
+        const read = getContract("read");
+        if (read) {
+          const handle = await read.getEncryptedVoteCount(BigInt(pollId), optionIndex);
+          if (!handle || handle === "0x0000000000000000000000000000000000000000000000000000000000000000") {
+            setMessage(`❌ Option ${optionIndex + 1} has no votes yet. Please wait for users to vote first.`);
+            setIsProcessing(false);
+            return;
+          }
+        }
+      } catch (readError) {
+        console.warn("Could not check option status:", readError);
+      }
+      
       setMessage(`Authorizing decryption for option ${optionIndex + 1}...`);
+      
+      // 使用 estimateGas 先检查交易是否会成功
+      try {
+        await write.allowAdminToDecrypt.estimateGas(BigInt(pollId), optionIndex);
+      } catch (estimateError: any) {
+        console.error("Gas estimation failed:", estimateError);
+        let errorMsg = "Transaction would fail.";
+        if (estimateError?.reason) {
+          errorMsg = estimateError.reason;
+        } else if (estimateError?.message) {
+          errorMsg = estimateError.message;
+        } else if (estimateError?.data) {
+          errorMsg = "Option not initialized or invalid parameters";
+        }
+        setMessage(`❌ ${errorMsg} Possible reasons: Option has no votes yet, invalid parameters, or not admin.`);
+        setIsProcessing(false);
+        return;
+      }
+      
       const tx = await write.allowAdminToDecrypt(BigInt(pollId), optionIndex);
       setMessage("Waiting for transaction confirmation...");
       await tx.wait();
@@ -648,13 +697,32 @@ export const useVotingWagmi = (parameters: {
       // Refresh contract data and reload encrypted counts
       await refreshContractData();
       await loadEncryptedCounts();
-    } catch (e) {
+    } catch (e: any) {
       console.error("Allow decrypt error:", e);
-      setMessage(e instanceof Error ? e.message : String(e));
+      let errorMessage = "Unknown error";
+      
+      if (e?.reason) {
+        errorMessage = e.reason;
+      } else if (e?.message) {
+        errorMessage = e.message;
+      } else if (typeof e === "string") {
+        errorMessage = e;
+      }
+      
+      // 提供更友好的错误消息
+      if (errorMessage.includes("Only admin")) {
+        setMessage("❌ Only admin can authorize decryption. Please switch to admin account.");
+      } else if (errorMessage.includes("Option not initialized") || errorMessage.includes("no votes")) {
+        setMessage(`❌ Option ${optionIndex + 1} has no votes yet. Please wait for users to vote first.`);
+      } else if (errorMessage.includes("Invalid option")) {
+        setMessage(`❌ Invalid option index. Please check the option number.`);
+      } else {
+        setMessage(`❌ Authorization failed: ${errorMessage}`);
+      }
     } finally {
       setIsProcessing(false);
     }
-  }, [isAdmin, isProcessing, getContract, refreshContractData, loadEncryptedCounts]);
+  }, [isAdmin, isProcessing, pollInfo, getContract, refreshContractData, loadEncryptedCounts]);
 
   useEffect(() => {
     if (selectedPollId !== undefined && pollInfo) {
