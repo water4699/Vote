@@ -8,11 +8,9 @@
     "pnpm": ">=8.0.0"
   },
   "packageManager": "pnpm@8.15.0",
-  "workspaces": {
-    "packages": [
-      "packages/*"
-    ]
-  },
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "chain": "pnpm hardhat:chain",
     "compile": "pnpm hardhat:compile",
