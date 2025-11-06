@@ -5,6 +5,9 @@ fhevmTemp
 .hardhat/
 deployments/
 
+# Template (submodule removed)
+fhevm-hardhat-template/
+
 # directories
 .coverage_artifacts
 .coverage_cache
