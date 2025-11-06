@@ -1,4 +1,4 @@
 {
   "buildCommand": "npm run build",
-  "installCommand": "npm install && cd packages/fhevm-sdk && npm run build"
+  "installCommand": "npm install --workspaces=false && cd ../fhevm-sdk && npm install && npm run build && cd ../nextjs && npm install --legacy-peer-deps"
 }
